@@ -63,10 +63,8 @@ public:
                      Ng::NelContext&       nelContext,
                      const Nb::TimeBundle& tb)
     {
-        std::cerr << "Field3D-Channel Write starts" << std::endl;
-
         //Control that the body actually has a field shape
-        if (!body->hasShape("Field"))
+        if (!body->matches("Field"))
             NB_WARNING("No Field Shape found.");
 
         // Get Bodies String
@@ -96,11 +94,12 @@ public:
         out.create(filename.c_str());
 
         //Get type (Dense or Sparse)
+        const Nb::String typeStr = param1e("Output Type")->eval(tb);
         int type;
-        if (param1e("Body Signature")->eval(tb) == Nb::String("Dense")){
+        if (typeStr == Nb::String("Dense Field")){
             type = NbF3D::DENSE;
         }
-        else if (param1e("Body Signature")->eval(tb) == Nb::String("Sparse")) {
+        else if (typeStr == Nb::String("Sparse Field")) {
             type = NbF3D::SPARSE;
 
             if (!NbF3D::IsPower2(body->constLayout().tileSize())){
@@ -124,8 +123,15 @@ public:
         //Get the size. Remember, size in Field3D is from (0,0) to (N,N)
         Nb::Vec3i size = NbF3D::getBBSize(min,max);
 
+        //Get size of each cell
+        const float cSize =
+                Ng::Store::globalOp()->param1f("Master Cell Size")->eval(tb);
+
         //Get offset. Should map (-N,-N) to (0,0)
         Nb::Vec3i offset = NbF3D::getCellOffset(min);
+
+        //Gather all properties in a NbF3D struct
+        NbF3D::data data = {body, size, offset, cSize, out};
 
         //Access field shape
         const Nb::FieldShape & field = body->constFieldShape();
@@ -143,18 +149,15 @@ public:
             //If the channel is not present in the channel list passed by
             //the user, then skip it
             if (!tmpChan.listed_in(channelsStr))
-                return;
+                continue;
 
             //Call Naiad to Field3D interface to store data.
             switch (field.channel(chnIdx)->type()){
                 case Nb::ValueBase::FloatType: {
                     NbF3D::chanToF3D<true>(type
-                            , body
+                            , data
                             , field.constField1f(chnIdx)
                             , chnIdx
-                            , out
-                            , size
-                            , offset
                             , nDef[0]);
                     break;
                 }
@@ -171,23 +174,17 @@ public:
                             , body->constLayout()};
 
                     NbF3D::chanToF3D<false>(type
-                            , body
+                            , data
                             , fieldData
                             , chnIdx
-                            , out
-                            , size
-                            , offset
                             , def);
                     break;
                 }
                 case Nb::ValueBase::IntType:{
                     NbF3D::chanToF3D<true>(type
-                            , body
-                            , field.constField1f(chnIdx)
+                            , data
+                            , field.constField1i(chnIdx)
                             , chnIdx
-                            , out
-                            , size
-                            , offset
                             , int(nDef[0]));
                     break;
                 }
@@ -201,8 +198,6 @@ public:
 
         //Close Field3D write file
         out.close();
-
-        std::cerr << "Field3D-Channel Write ends" << std::endl;
     }
 };
 // ----------------------------------------------------------------------------

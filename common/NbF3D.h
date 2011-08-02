@@ -41,13 +41,22 @@
 #include <Field3D/InitIO.h>
 
 namespace NbF3D{
-
+// ----------------------------------------------------------------------------
     enum type{
         DENSE = 0,
         SPARSE = 1,
         MAC = 2 //Currently not supported, maybe Batman can fix it /"\'..'/"\.
     };
-
+// ----------------------------------------------------------------------------
+    struct data
+    {
+        const Nb::Body * body;
+        const Nb::Vec3i & size;
+        const Nb::Vec3i & offset;
+        const float cSize;
+        Field3D::Field3DOutputFile & out;
+    };
+// ----------------------------------------------------------------------------
     //Not used at the moment
     class Vec3f : public Imath::V3f
     {
@@ -56,7 +65,7 @@ namespace NbF3D{
         Vec3f(int i): Imath::V3f(i) {};
         Vec3f(const Nb::Vec3f & v) : Imath::V3f(v[0], v[1], v[2]){};
     };
-
+// ----------------------------------------------------------------------------
     struct Field3f{
         const Nb::Field1f &  fU, & fV, & fW;
         const Nb::TileLayout & tileLayout;
@@ -98,62 +107,76 @@ namespace NbF3D{
             return Imath::V3f(u,v,w);
         };
     };
-
-
-
+// ----------------------------------------------------------------------------
     template<class F, class T>
     void initField( F fieldPtr
-                  , const Nb::Body * body
+                  , const data & d
                   , const int chnIdx
-                  , const Nb::Vec3i & size
                   , const T & def)
     {
         //Field name after the body's name
-        fieldPtr->name = body->name().c_str();
+        fieldPtr->name = d.body->name().c_str();
 
         //Access field shape
-        const Nb::FieldShape & fieldShape = body->constFieldShape();
+        const Nb::FieldShape & fieldShape = d.body->constFieldShape();
 
         //Attribute name after the channel name
         fieldPtr->attribute = fieldShape.channel(chnIdx)->name().c_str();
 
         //Bounding Box
-        fieldPtr->setSize(Imath::V3i(size[0], size[1], size[2]));
+        fieldPtr->setSize(Imath::V3i(d.size[0], d.size[1], d.size[2]));
 
         //Set default value everywhere to begin with
         fieldPtr->clear(def);
-    };
 
+        //Move to the correct world coordinates
+        Field3D::M44d localToWorld;
+
+        //Scale the size according to Master Cell Size
+        localToWorld.setScale(
+                Imath::V3d(d.size[0], d.size[1], d.size[2]) * d.cSize);
+
+        //We don't want the top bottom left corner to be at (0,0,0)
+        localToWorld *= Field3D::M44d().setTranslation(
+                Imath::V3d(d.offset[0], d.offset[1], d.offset[2]) * d.cSize);
+
+        //Apply Matrix
+        Field3D::MatrixFieldMapping::Ptr mapping(
+                new Field3D::MatrixFieldMapping);
+        mapping->setLocalToWorld(localToWorld);
+        fieldPtr->setMapping(mapping);
+    };
+// ----------------------------------------------------------------------------
     template<class F, class nF>
     void chanToField(F fieldPtr
-            , const Nb::Body * body
-            , const nF & naiadField
-            , const Nb::Vec3i & offset)
+            , const data & d
+            , const nF & naiadField)
     {
         //Access field shape
-        const Nb::FieldShape & fieldShape = body->constFieldShape();
+        const Nb::FieldShape & fieldShape = d.body->constFieldShape();
 
         //Get Tile Layout
-        const Nb::TileLayout & tileLayout = body->constLayout();
+        const Nb::TileLayout & tileLayout = d.body->constLayout();
 
         //Cell indices
         int ci, cj ,ck;
 
+//#pragma omp parallel for schedule(dynamic)
         for (int iTiles = 0; iTiles < tileLayout.fineTileCount(); ++iTiles){
             Nb::Tile tile(tileLayout.fineTile(iTiles));
             //We are only interested in the fine tiles.
             if(tile.type()==Nb::Tile::Fine) {
                 for (int iTC = tile.cellsBegin(); iTC < tile.cellsEnd(); ++iTC){
                     tileLayout.cijk(iTC,ci,cj,ck);
-                    ci -= offset[0];
-                    cj -= offset[1];
-                    ck -= offset[2];
+                    ci -= d.offset[0];
+                    cj -= d.offset[1];
+                    ck -= d.offset[2];
                     fieldPtr->fastLValue(ci, cj, ck) = naiadField(iTC);
                 }
             }
         }
     };
-
+// ----------------------------------------------------------------------------
     template <bool scalar, class F, class T>
     class F3DFileWrite{
     public:
@@ -162,7 +185,7 @@ namespace NbF3D{
             out.writeScalarLayer<F>(fieldPtr);
         };
     };
-
+// ----------------------------------------------------------------------------
     template<class F, class T>
     class F3DFileWrite<false, F, T>
     {
@@ -172,14 +195,11 @@ namespace NbF3D{
             out.writeVectorLayer<float>(fieldPtr);
         };
     };
-
+// ----------------------------------------------------------------------------
     template <bool scalar, class T, class nF>
-    void chanToDenseF3D(  const Nb::Body * body
+    void chanToDenseF3D(  const data & d
                         , const nF & naiadField
                         , const int chnIdx
-                        , Field3D::Field3DOutputFile &  out
-                        , const Nb::Vec3i & size
-                        , const Nb::Vec3i & offset
                         , const T & def)
     {
         //Create a Dense Field3D Voxel Field
@@ -187,24 +207,20 @@ namespace NbF3D{
                 new Field3D::DenseField<T>());
 
         //Init names and size
-        initField(fieldPtr, body, chnIdx, size, def);
+        initField(fieldPtr, d, chnIdx, def);
 
         //From Naiad field to Field3D field
-        chanToField(fieldPtr, body, naiadField, offset);
+        chanToField(fieldPtr, d, naiadField);
 
         //From Dense Field3D field to Field3D file
         F3DFileWrite<scalar, T, typename Field3D::DenseField<T>::Ptr>::write(
-                out,fieldPtr);
-
+                d.out,fieldPtr);
     };
-
+// ----------------------------------------------------------------------------
     template <bool scalar, class T, class nF>
-    void chanToSparseF3D( const Nb::Body * body
+    void chanToSparseF3D( const data & d
                         , const nF & naiadField
                         , const int chnIdx
-                        , Field3D::Field3DOutputFile &  out
-                        , const Nb::Vec3i & size
-                        , const Nb::Vec3i & offset
                         , const T & def)
     {
         //Create a Sparse Field3D Voxel Field
@@ -212,33 +228,28 @@ namespace NbF3D{
                 new Field3D::SparseField<T>());
 
         //Init names and size
-        initField(fieldPtr, body, chnIdx, size, def);
+        initField(fieldPtr, d, chnIdx, def);
 
         //From Naiad field to Field3D field
-        chanToField(fieldPtr, body, naiadField, offset);
+        chanToField(fieldPtr, d, naiadField);
 
         //From Sparse Field3D field to Field3D file
         F3DFileWrite<scalar, T, typename Field3D::SparseField<T>::Ptr>::write(
-                out,fieldPtr);
+                d.out,fieldPtr);
     };
-
+// ----------------------------------------------------------------------------
     template <bool scalar, class T, class nF>
     void chanToF3D(const int type
-            , const Nb::Body * body
+            , const data & d
             , const nF & naiadField
             , const int chnIdx
-            , Field3D::Field3DOutputFile &  out
-            , const Nb::Vec3i & size
-            , const Nb::Vec3i & offset
             , const T & def)
     {
         if (type == DENSE){
-            chanToDenseF3D<scalar, T>(body, naiadField, chnIdx, out, size,
-                    offset, def);
+            chanToDenseF3D<scalar, T>(d, naiadField, chnIdx, def);
         }
         else if (type == SPARSE){
-            chanToSparseF3D<scalar, T>(body, naiadField, chnIdx, out, size
-                    , offset, def);
+            chanToSparseF3D<scalar, T>(d, naiadField, chnIdx, def);
         }
     };
 
@@ -252,7 +263,7 @@ namespace NbF3D{
     {
         return min;
     };
-
+// ----------------------------------------------------------------------------
     void getMinMax(const Nb::Body * body
                  , Nb::Vec3i & min
                  , Nb::Vec3i & max)
@@ -302,7 +313,7 @@ namespace NbF3D{
             }
         }
     };
-
+// ----------------------------------------------------------------------------
     bool IsPower2(int x)
     {
         return ( (x > 0) && ((x & (x - 1)) == 0) );

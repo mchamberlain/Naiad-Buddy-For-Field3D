@@ -41,12 +41,13 @@ include_directories   (.
                        $ENV{NAIAD_PATH}/server/include/Nb
 	               	   $ENV{NAIAD_PATH}/server/include/Ng
                        $ENV{NAIAD_PATH}/server/include/Ni
-				       /home/per/f3d.git/install/linux2/m64/release/include
-			           /usr/include/OpenEXR/
+                       $ENV{FIELD3D_ROOT}/include
+			           $ENV{OPENEXR_INCLUDE_PATH}
 			           ../../common)
+			           
 link_directories      ($ENV{NAIAD_PATH}/server/lib
-			           /home/per/f3d.git/install/linux2/m64/release/lib
-			           /usr/lib64/)
+			           $ENV{FIELD3D_ROOT}/lib)
+			           
 ADD_DEFINITIONS(-fopenmp)
 # user op is a dynamic shared library
 
