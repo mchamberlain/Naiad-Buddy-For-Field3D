@@ -24,6 +24,18 @@ BodyOp Field3D-Channel-Write
     |* All bodies encountered in <i>body-input</i> are passed down through this
        output, regardless if they were admitted or not. *|
 
+	ParamSection "General"
+	{
+		FieldType "Output type" "Dense Field"
+		||to be added
+	
+	     BodyNameList "Body Name(s)" "*"
+         || The list of body names to include in the write. 
+         
+         String "Channel(s)" "*"
+         || Specify what channels you want to write.
+	}
+
     ParamSection "File Output"
     {
          PathName "Output File Path" ""
@@ -32,9 +44,6 @@ BodyOp Field3D-Channel-Write
          Int "Frame Padding" "4"
          |* The number of zeroes to pad the frame number by, when expanding
             to the absolute filename. *|
-
-         BodyNameList "Body Names" "*"
-         || The list of body names to include in the write.  
     }
 
 }

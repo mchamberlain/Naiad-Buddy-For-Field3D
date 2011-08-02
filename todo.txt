@@ -1,1 +1,3 @@
 fix env variables for CMAKE
+change to em::ispowerof2
+blockorder
