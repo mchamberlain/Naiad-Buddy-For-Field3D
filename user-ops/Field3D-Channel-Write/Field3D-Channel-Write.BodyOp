@@ -1,0 +1,40 @@
+BodyOp Field3D-Channel-Write
+|*
+   <h3>Overview</h3>
+   This operator takes a Naiad field as input and write all its channels into a
+   Field3D file (.f3d). If you enter an output file path, the 
+   Field3D-Channel-Write will create a .f3d file for each body the following 
+   way:
+   <i>output_path/body_name.#.f3d</i> where # is the current 
+   frame (set padding).
+*|
+{
+	EnumGroup FieldType{
+	"Dense Field"
+	"Sparse Field"	
+	}
+
+    Category "File"
+    Category "User"
+
+    Group(Body) Input "body-input"
+    || All admitted bodies enter through this input.
+
+    Group(Body) Output "body-output"
+    |* All bodies encountered in <i>body-input</i> are passed down through this
+       output, regardless if they were admitted or not. *|
+
+    ParamSection "File Output"
+    {
+         PathName "Output File Path" ""
+         || The path to where the Field3D files will be created.
+
+         Int "Frame Padding" "4"
+         |* The number of zeroes to pad the frame number by, when expanding
+            to the absolute filename. *|
+
+         BodyNameList "Body Names" "*"
+         || The list of body names to include in the write.  
+    }
+
+}

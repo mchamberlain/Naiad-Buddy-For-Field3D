@@ -1,0 +1,1 @@
+fix env variables for CMAKE
