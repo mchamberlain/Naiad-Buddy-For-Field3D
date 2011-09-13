@@ -33,22 +33,6 @@
 #
 project               (NBUDDY_FIELD3D_USER_OPS_FIELD3D_CHANNEL_WRITE)
 
-# include and library paths to the Naiad dynamics server..
-
-include_directories   (.
-                       $ENV{NAIAD_PATH}/server/include/system
-                       $ENV{NAIAD_PATH}/server/include/em
-                       $ENV{NAIAD_PATH}/server/include/Nb
-	               	   $ENV{NAIAD_PATH}/server/include/Ng
-                       $ENV{NAIAD_PATH}/server/include/Ni
-                       $ENV{FIELD3D_ROOT}/include
-			           $ENV{OPENEXR_INCLUDE_PATH}
-			           ../../common)
-			           
-link_directories      ($ENV{NAIAD_PATH}/server/lib
-			           $ENV{FIELD3D_ROOT}/lib)
-			           
-ADD_DEFINITIONS(-fopenmp)
 # user op is a dynamic shared library
 
 add_library           (Field3D-Channel-Write SHARED 

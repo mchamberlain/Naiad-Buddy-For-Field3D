@@ -45,7 +45,7 @@ namespace NbF3D{
     enum type{
         DENSE = 0,
         SPARSE = 1,
-        MAC = 2 //Currently not supported, maybe Batman can fix it /"\'..'/"\.
+        MAC = 2 //Currently not supported
     };
 // ----------------------------------------------------------------------------
     struct data
@@ -70,7 +70,8 @@ namespace NbF3D{
         const Nb::Field1f &  fU, & fV, & fW;
         const Nb::TileLayout & tileLayout;
 
-        Imath::V3f operator()(const int i) const
+        Imath::V3f
+        operator()(const int i) const
         {
             //Get cell indices from global tile cell index i
             int ci, cj, ck;
@@ -108,11 +109,11 @@ namespace NbF3D{
         };
     };
 // ----------------------------------------------------------------------------
-    template<class F, class T>
-    void initField( F fieldPtr
-                  , const data & d
-                  , const int chnIdx
-                  , const T & def)
+    template<class F, class T> void
+    initField(      F fieldPtr,
+                const data & d,
+              const int chnIdx,
+                 const T & def)
     {
         //Field name after the body's name
         fieldPtr->name = d.body->name().c_str();
@@ -147,10 +148,10 @@ namespace NbF3D{
         fieldPtr->setMapping(mapping);
     };
 // ----------------------------------------------------------------------------
-    template<class F, class nF>
-    void chanToField(F fieldPtr
-            , const data & d
-            , const nF & naiadField)
+    template<class F, class nF> void
+    chanToField(F            fieldPtr,
+                const data &        d,
+                const nF & naiadField)
     {
         //Access field shape
         const Nb::FieldShape & fieldShape = d.body->constFieldShape();
@@ -161,7 +162,7 @@ namespace NbF3D{
         //Cell indices
         int ci, cj ,ck;
 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
         for (int iTiles = 0; iTiles < tileLayout.fineTileCount(); ++iTiles){
             Nb::Tile tile(tileLayout.fineTile(iTiles));
             //We are only interested in the fine tiles.
@@ -180,7 +181,8 @@ namespace NbF3D{
     template <bool scalar, class F, class T>
     class F3DFileWrite{
     public:
-        static void write(Field3D::Field3DOutputFile &  out, T fieldPtr)
+        static void
+        write(Field3D::Field3DOutputFile &  out, T fieldPtr)
         {
             out.writeScalarLayer<F>(fieldPtr);
         };
@@ -190,17 +192,18 @@ namespace NbF3D{
     class F3DFileWrite<false, F, T>
     {
     public:
-        static void write(Field3D::Field3DOutputFile &  out, T fieldPtr)
+        static void
+        write(Field3D::Field3DOutputFile &  out, T fieldPtr)
         {
             out.writeVectorLayer<float>(fieldPtr);
         };
     };
 // ----------------------------------------------------------------------------
-    template <bool scalar, class T, class nF>
-    void chanToDenseF3D(  const data & d
-                        , const nF & naiadField
-                        , const int chnIdx
-                        , const T & def)
+    template <bool scalar, class T, class nF> void
+    chanToDenseF3D(const data &        d,
+                   const nF & naiadField,
+                   const int      chnIdx,
+                   const T &         def)
     {
         //Create a Dense Field3D Voxel Field
         typename Field3D::DenseField<T>::Ptr fieldPtr(
@@ -217,11 +220,11 @@ namespace NbF3D{
                 d.out,fieldPtr);
     };
 // ----------------------------------------------------------------------------
-    template <bool scalar, class T, class nF>
-    void chanToSparseF3D( const data & d
-                        , const nF & naiadField
-                        , const int chnIdx
-                        , const T & def)
+    template <bool scalar, class T, class nF> void
+    chanToSparseF3D(const data &        d,
+                    const nF & naiadField,
+                    const int      chnIdx,
+                    const T &         def)
     {
         //Create a Sparse Field3D Voxel Field
         typename Field3D::SparseField<T>::Ptr fieldPtr(
@@ -238,12 +241,12 @@ namespace NbF3D{
                 d.out,fieldPtr);
     };
 // ----------------------------------------------------------------------------
-    template <bool scalar, class T, class nF>
-    void chanToF3D(const int type
-            , const data & d
-            , const nF & naiadField
-            , const int chnIdx
-            , const T & def)
+    template <bool scalar, class T, class nF> void
+    chanToF3D(const int        type,
+              const data &        d,
+              const nF & naiadField,
+              const int      chnIdx,
+              const T &         def)
     {
         if (type == DENSE){
             chanToDenseF3D<scalar, T>(d, naiadField, chnIdx, def);
@@ -253,20 +256,23 @@ namespace NbF3D{
         }
     };
 
-    Nb::Vec3i getBBSize(const Nb::Vec3i & min, const Nb::Vec3i & max)
+    Nb::Vec3i
+    getBBSize(const Nb::Vec3i & min, const Nb::Vec3i & max)
     {
         //Important to add a vector (1,1,1)
         return max - min + Nb::Vec3i(1,1,1);
     };
-
-    Nb::Vec3i getCellOffset(const Nb::Vec3i & min)
+// ----------------------------------------------------------------------------
+    Nb::Vec3i
+    getCellOffset(const Nb::Vec3i & min)
     {
         return min;
     };
 // ----------------------------------------------------------------------------
-    void getMinMax(const Nb::Body * body
-                 , Nb::Vec3i & min
-                 , Nb::Vec3i & max)
+    void
+    getMinMax(const Nb::Body * body,
+              Nb::Vec3i & min,
+              Nb::Vec3i & max)
     {
         //Cell indices
         int ci,cj,ck;
@@ -314,7 +320,8 @@ namespace NbF3D{
         }
     };
 // ----------------------------------------------------------------------------
-    bool IsPower2(int x)
+    bool
+    IsPower2(int x)
     {
         return ( (x > 0) && ((x & (x - 1)) == 0) );
     };

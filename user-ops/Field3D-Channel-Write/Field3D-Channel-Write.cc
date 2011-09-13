@@ -53,11 +53,11 @@ class Field3D_Channel_Write : public Ng::BodyOp
 public:
     Field3D_Channel_Write(const Nb::String& name)
         : Ng::BodyOp(name) {}
-
+// ----------------------------------------------------------------------------
     virtual Nb::String
     typeName() const
     { return "Field3D-Channel-Write"; }
-
+// ----------------------------------------------------------------------------
     virtual void
     stepAdmittedBody(Nb::Body*             body,
                      Ng::NelContext&       nelContext,
