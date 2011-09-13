@@ -47,6 +47,7 @@ export CXX=g++
 export EM_PLAT=LINUX
 export EM_ARCH=`uname -m`
 export FIELD3D_ROOT=/path/to/where/Field3D/is/installed
+export HDF5_ROOT=/path//HDF5
 export OPENEXR_INCLUDE_PATH=/path/to/OpenEXR/include/files
 }}}
 
@@ -67,6 +68,7 @@ setenv CXX g++
 setenv EM_PLAT LINUX
 setenv EM_ARCH `uname -m`
 setenv FIELD3D_ROOT=/path/to/where/Field3D/is/installed
+setenv HDF5_ROOT=/path//HDF5
 setenv OPENEXR_INCLUDE_PATH=/path/to/OpenEXR/include/files
 }}}
 
