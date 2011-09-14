@@ -30,7 +30,98 @@ $ echo $SHELL
 
 if you see /bin/bash - then you are using a bash shell.  Otherwise it's tcsh/csh.
 
-== 1.1 Bash Configuration
+== 1.1 Build Field3D (64-bit Linux) ==
+
+This was tested in Ubuntu 10.10
+
+** 1. Get Field3D **
+
+Get the latest Field3D version from [[https://github.com/imageworks/Field3D|Sony Imageworks's github:]]
+
+You can put the repository anywhere you want. In this guide, it'll be added at {{{~/field3d.git}}}
+{{{
+git clone https://github.com/imageworks/Field3D.git ~/field3d.git
+}}}
+
+** 2. Get HDF5 **
+
+Go to http://www.hdfgroup.org and download the 64-bit shared Linux version, for example {{{hdf5-1.8.7-linux-shared.tar.gz}}}
+
+Extract it anywhere and add an environment variable:
+{{{
+export HDF5_ROOT=/PATH/TO/HDF5
+}}}
+
+** 3. Get OpenEXR **
+
+Get it at http://www.openexr.com or 
+{{{
+sudo apt-get install libopenexr-dev
+}}}
+
+Add an environment variable to the OpenEXR include files (for example: {{{/usr/include/OpenEXR}}})
+{{{
+export OPENEXR_INCLUDE_FILES=/PATH/TO/OPENEXR/INCLUDE/FILES
+}}}
+
+** 4. Get boost **
+{{{
+sudo apt-get install  libboost-dev
+}}}
+
+** 5. Get scons **
+{{{
+sudo apt-get install scons
+}}}
+
+** 6. Build Field3D **
+
+Go to the root of where you put the Field3D repository, for example {{{~/field3d.git}}}.
+
+edit {{{BuildSupport.py}}}
+
+at Line78, change: 
+{{{
+arch64 : ["/usr/local64/include" ]}
+}}}
+
+to
+{{{
+arch64 : ["/usr/local64/include", "/PATH/TO/HDF5/include","/PATH/TO/OPENEXR/INCLUDE/FILES"]}
+}}}
+
+and at Line 87, change:
+{{{
+arch64 : ["/usr/local64/lib"]}
+}}}
+
+to
+{{{
+arch64 : ["/usr/local64/lib","/PATH/TO/HDF5/lib"]}
+}}}
+
+Finally run this cmd:
+{{{
+scons do64=1
+}}}
+
+You might have to include boost include and lib paths too if this does not work.
+
+Once everything is built, add a Field3D environment variable. If the repository was cloned into {{{~/field3d.git}}}, this can look like:
+{{{
+export FIELD3D_ROOT=~/field3D.git/install/linux2/m64/release
+}}}
+
+** 7. Add Field3D and HDF5 to LD_LIBRARY_PATH **
+{{{
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FIELD3D_ROOT/lib:$HDF5_ROOT/lib
+}}}
+
+Done! Now we can build Houdini and Naiad operators!
+
+
+
+== 1.2 Bash Configuration
 
 Please edit the .bashrc configuration file to add the necessary environment variables.  The .bashrc configuration file is a text file which is located in your home directory.  You can use any text editor (such as gedit) to edit the .bashrc file:
 
@@ -47,11 +138,12 @@ export CXX=g++
 export EM_PLAT=LINUX
 export EM_ARCH=`uname -m`
 export FIELD3D_ROOT=/path/to/where/Field3D/is/installed
-export HDF5_ROOT=/path//HDF5
-export OPENEXR_INCLUDE_PATH=/path/to/OpenEXR/include/files
+export HDF5_ROOT=/PATH/TO/HDF5
+export OPENEXR_INCLUDE_PATH=/PATH/TO/OPENEXR/INCLUDE/FILES
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FIELD3D_ROOT/lib:$HDF5_ROOT/lib
 }}}
 
-== 1.2 tcsh/csh Configuration
+== 1.3 tcsh/csh Configuration
 
 If you are NOT using a bash shell, you need to edit the .cshrc configuration file, which is located in your home directory.  You can use any text editor (such as gedit) to edit the .cshrc file:
 
@@ -68,11 +160,12 @@ setenv CXX g++
 setenv EM_PLAT LINUX
 setenv EM_ARCH `uname -m`
 setenv FIELD3D_ROOT=/path/to/where/Field3D/is/installed
-setenv HDF5_ROOT=/path//HDF5
-setenv OPENEXR_INCLUDE_PATH=/path/to/OpenEXR/include/files
+setenv HDF5_ROOT=/PATH/TO/HDF5
+setenv OPENEXR_INCLUDE_PATH=/PATH/TO/OPENEXR/INCLUDE/FILES
+setenv LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$FIELD3D_ROOT/lib:$HDF5_ROOT/lib
 }}}
 
-== 1.3 Verifying Your Configuration
+== 1.4 Verifying Your Configuration
 
 Quit the text editor and close the shell. Open a new shell, which should take into account the new variables you've added.  You should verify this by typing:
 
@@ -87,6 +180,12 @@ $ echo $OPENEXR_INCLUDE_PATH
 }}}
 
 Path to OpenEXR include files.
+
+{{{
+$ echo $HDF5_ROOT
+}}}
+
+Path to HDF5 root.
 
 {{{
 $ echo $FIELD3D_ROOT
@@ -122,3 +221,40 @@ make
 cd .. 
 rm -rf build
 }}}
+
+= 3.0 Compiling Field3D operator for Houdini (64-bit Linux)
+
+**1. Get the latest version of Houdini **
+
+Download from http://www.sidefx.com/
+
+**2. Copy the Field3D Houdini Toolkit sample files
+
+For example:
+{{{
+cp -r /opt/hfs11.1.22/toolkit/samples/field3d ~/ && mv ~/field3d ~/houdini-field3d
+}}}
+
+**3. Build
+
+Enter the dir:
+{{{
+cd ~/houdini-field3d
+}}}
+
+You might have to get csh before you can compile with hcustom
+{{{
+sudo apt-get install csh
+}}}
+
+Finally, run this command:
+{{{
+hcustom -L $HDF5_ROOT/lib -L $FIELD3D_ROOT/lib -l hdf5 -l Field3D -I $HDF5_ROOT/include -I $FIELD3D_ROOT/include -I $OPENEXR_INCLUDE_PATH f3dtools.C
+}}}
+
+If built successfully, remove the dir
+{{{
+rm -rf ~/houdini-field3d
+}}}
+
+Done!
